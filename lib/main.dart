@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
-import 'package:ffmpeg_kit_flutter_new/return_code.dart';
+import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';           // Correct import
+import 'package:ffmpeg_kit_flutter_new/return_code.dart';        // Correct import
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -14,33 +16,43 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cinema Audio V2',
-      theme: ThemeData(primarySwatch: Colors.deepPurple),  // Cinematic purple theme
-      home: const CinemaScreen(),
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        useMaterial3: true,
+      ),
+      home: const CinemaAudioScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class CinemaScreen extends StatefulWidget {
-  const CinemaScreen({super.key});
+class CinemaAudioScreen extends StatefulWidget {
+  const CinemaAudioScreen({super.key});
 
   @override
-  State<CinemaScreen> createState() => _CinemaScreenState();
+  State<CinemaAudioScreen> createState() => _CinemaAudioScreenState();
 }
 
-class _CinemaScreenState extends State<CinemaScreen> {
+class _CinemaAudioScreenState extends State<CinemaAudioScreen> {
   File? _selectedAudio;
-  String _action = 'Convert to WAV';
+  String _selectedAction = 'Convert to WAV';
   String _status = 'Select an audio file for cinematic enhancement.';
   bool _isProcessing = false;
 
-  Future<void> _pickAudio() async {
+  final List<String> _actions = [
+    'Convert to WAV',
+    'Apply Cinema Bass Boost',
+  ];
+
+  Future<void> _pickAudioFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
     );
+
     if (result != null && result.files.single.path != null) {
       setState(() {
         _selectedAudio = File(result.files.single.path!);
-        _status = 'Audio selected: ${_selectedAudio!.path.split('/').last}';
+        _status = 'Selected: ${_selectedAudio!.path.split('/').last}';
       });
     }
   }
@@ -50,47 +62,53 @@ class _CinemaScreenState extends State<CinemaScreen> {
 
     setState(() {
       _isProcessing = true;
-      _status = 'Enhancing for cinema...';
+      _status = 'Processing audio... Please wait.';
     });
 
-    final directory = await getApplicationDocumentsDirectory();
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    String outputPath;
-    String command;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      String outputPath;
+      String command;
 
-    if (_action == 'Convert to WAV') {
-      outputPath = '${directory.path}/cinema_converted_$timestamp.wav';
-      command = '-i ${_selectedAudio!.path} -ar 44100 -ac 2 $outputPath';  // 44.1kHz stereo WAV
-    } else {
-      outputPath = '${directory.path}/cinema_boosted_$timestamp.mp3';
-      command = '-i ${_selectedAudio!.path} -af "equalizer=f=80:t=q:w=1:g=8,equalizer=f=200:t=q:w=1:g=4" $outputPath';  // Cinematic bass: +8dB@80Hz, +4dB@200Hz
-    }
+      if (_selectedAction == 'Convert to WAV') {
+        outputPath = '${directory.path}/cinema_converted_$timestamp.wav';
+        command = '-i "${_selectedAudio!.path}" -ar 44100 -ac 2 "$outputPath"';
+      } else {
+        // Cinema Bass Boost: Strong low-end enhancement
+        outputPath = '${directory.path}/cinema_boosted_$timestamp.mp3';
+        command =
+            '-i "${_selectedAudio!.path}" -af "equalizer=f=80:t=q:w=1.5:g=8,equalizer=f=200:t=q:w=1:g=4" "$outputPath"';
+      }
 
-    final session = await FFmpegKit.execute(command);
+      final session = await FFmpegKit.execute(command);
 
-    // Optional: Print logs for debugging
-    final logs = await session.getLogs();
-    for (final log in logs) {
-      print(log.getMessage());  // View in console
-    }
+      final returnCode = await session.getReturnCode();
 
-    final returnCode = await session.getReturnCode();
-    if (ReturnCode.isSuccess(returnCode)) {
+      if (ReturnCode.isSuccess(returnCode)) {
+        setState(() {
+          _status = 'Success!\nSaved to:\n$outputPath';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cinematic audio processed successfully! 🎬🔊'),
+            backgroundColor: Colors.deepPurple,
+          ),
+        );
+      } else {
+        setState(() {
+          _status = 'Processing failed. Check console logs.';
+        });
+      }
+    } catch (e) {
       setState(() {
-        _status = 'Success! Saved to: $outputPath';
+        _status = 'Error: $e';
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cinematic audio ready! Check documents folder.'))
-      );
-    } else {
+    } finally {
       setState(() {
-        _status = 'Failed: See console logs.';
+        _isProcessing = false;
       });
     }
-
-    setState(() {
-      _isProcessing = false;
-    });
   }
 
   @override
@@ -99,29 +117,52 @@ class _CinemaScreenState extends State<CinemaScreen> {
       appBar: AppBar(
         title: const Text('Cinema Audio V2'),
         backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        elevation: 4,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton.icon(
-              onPressed: _pickAudio,
-              icon: const Icon(Icons.audiotrack),
-              label: const Text('Pick Audio File'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            const Icon(
+              Icons.movie_filter_outlined,
+              size: 80,
+              color: Colors.deepPurple,
             ),
             const SizedBox(height: 20),
+            const Text(
+              'Enhance your audio for a true cinema experience',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+
+            ElevatedButton.icon(
+              onPressed: _pickAudioFile,
+              icon: const Icon(Icons.audiotrack),
+              label: const Text('Pick Audio File'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                textStyle: const TextStyle(fontSize: 18),
+              ),
+            ),
+            const SizedBox(height: 30),
+
             if (_selectedAudio != null) ...[
               DropdownButton<String>(
-                value: _action,
+                value: _selectedAction,
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down),
+                style: const TextStyle(color: Colors.deepPurple, fontSize: 16),
                 onChanged: (String? newValue) {
                   setState(() {
-                    _action = newValue!;
+                    _selectedAction = newValue!;
                   });
                 },
-                items: <String>['Convert to WAV', 'Apply Cinema Bass Boost']
-                    .map<DropdownMenuItem<String>>((String value) {
+                items: _actions.map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -129,14 +170,35 @@ class _CinemaScreenState extends State<CinemaScreen> {
                 }).toList(),
               ),
               const SizedBox(height: 20),
+
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _processAudio,
-                icon: const Icon(Icons.movie),
-                label: Text(_isProcessing ? 'Enhancing...' : 'Process for Cinema'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+                icon: _isProcessing
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Icon(Icons.movie),
+                label: Text(_isProcessing ? 'Processing...' : 'Process Audio'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  textStyle: const TextStyle(fontSize: 18),
+                ),
               ),
-              const SizedBox(height: 20),
-              Text(_status, style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 30),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.deepPurple.shade200),
+                ),
+                child: Text(
+                  _status,
+                  style: const TextStyle(fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ],
           ],
         ),
