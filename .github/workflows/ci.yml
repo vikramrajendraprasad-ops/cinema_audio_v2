@@ -1,0 +1,41 @@
+name: CI - Build APK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # Uses latest Ubuntu (2026: Flutter 3.24+ compatible)
+
+    steps:
+    - uses: actions/checkout@v4  # Checkout code
+
+    - uses: subosito/flutter-action@v2.14.0  # Setup Flutter SDK (caches)
+      with:
+        flutter-version: '3.24.0'  # Pin to stable; auto-updates minor
+        channel: 'stable'
+
+    - name: Get dependencies
+      run: flutter pub get  # Installs packages (cached)
+
+    - name: Verify formatting
+      run: dart format --output=none --set-exit-if-changed .  # Lint check
+
+    - name: Run tests
+      run: flutter test  # Basic unit tests (expand as needed)
+
+    - name: Build APK
+      run: flutter build apk --release  # Builds app-release.apk
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release.apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30  # Keeps artifacts for 30 days
