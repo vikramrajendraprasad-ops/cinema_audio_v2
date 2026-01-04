@@ -1,0 +1,27 @@
+name: Initialize Android Platform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Generate Android platform
+        run: |
+          flutter create --platforms=android .
+          ls -la
+
+      - name: Upload Android folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-folder
+          path: android
