@@ -1,22 +1,22 @@
 name: cinema_audio_v2
-description: "A cinematic audio DSP converter app using FFmpeg."
-publish_to: 'none'
+description: A cinematic audio DSP conversion app using native FFmpeg for format conversion and bass boost effects.
+publish_to: 'none' # Do not publish to pub.dev (private app)
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'  # Compatible with current Flutter stable
 
 dependencies:
   flutter:
     sdk: flutter
-  ffmpeg_kit_flutter_new_audio: ^2.0.0  # Updated to valid version
-  file_picker: ^8.1.2  # For picking audio files
-  path_provider: ^2.1.4  # For saving output files
+  ffmpeg_kit_flutter_new_audio: ^2.0.0  # Correct audio-only FFmpeg package (latest)
+  file_picker: ^8.1.2                   # For selecting audio files
+  path_provider: ^2.1.4                 # For saving processed files
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^3.0.0                 # Optional linting
 
 flutter:
-  uses-material-design: true
+  uses-material-design: true            # Enables Material icons/fonts
