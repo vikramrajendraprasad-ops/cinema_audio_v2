@@ -1,53 +1,49 @@
-name: Init Flutter Project (Commit Android)
+name: CI - Build APK
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  init:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
+    - uses: subosito/flutter-action@v2.14.0  # Latest action
+      with:
+        channel: 'stable'  # No version pin = always latest stable Flutter
 
-      - name: Create Flutter app structure
-        run: |
-          flutter create --platforms=android --project-name cinema_audio .
-          rm -f lib/main.dart
+    - name: Get dependencies
+      run: flutter pub get
 
-      - name: Restore your main.dart
-        run: |
-          mkdir -p lib
-          cat << 'EOF' > lib/main.dart
-          import 'package:flutter/material.dart';
-          void main() {
-            runApp(const MyApp());
-          }
-          class MyApp extends StatelessWidget {
-            const MyApp({super.key});
-            @override
-            Widget build(BuildContext context) {
-              return const MaterialApp(
-                home: Scaffold(
-                  body: Center(child: Text('Cinema Audio Ready')),
-                ),
-              );
-            }
-          }
-          EOF
+    - name: Verify formatting
+      run: dart format --output=none --set-exit-if-changed .
 
-      - name: Commit generated files
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Initialize Flutter Android project"
-          git push
+    - name: Run tests
+      run: flutter test
+
+    - name: Build APK
+      run: flutter build apk --release --verbose
+
+    - name: Upload APK artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release.apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
+
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-failure
+        path: |
+          **/*.log
