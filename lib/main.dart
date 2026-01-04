@@ -1,12 +1,13 @@
 
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,17 +47,23 @@ class _HomeScreenState extends State<HomeScreen> {
   // ✅ FFmpeg conversion & bass boost logic — inline
   Future<File?> _convertAndBoost(File inputFile) async {
     final tempDir = await getTemporaryDirectory();
-    final outputFileName = 'cinematic_${DateTime.now().millisecondsSinceEpoch}.mp3';
+    final outputFileName =
+        'cinematic_${DateTime.now().millisecondsSinceEpoch}.mp3';
     final outputFile = File('${tempDir.path}/$outputFileName');
 
     // FFmpeg command: bass boost + format to MP3 (192kbps, stereo, 44.1kHz)
     final arguments = [
-      '-i', inputFile.path,
-      '-af', 'bass=g=12',        // +12dB bass boost (cinematic effect)
-      '-ar', '44100',            // sample rate
-      '-ac', '2',                // stereo
-      '-b:a', '192k',            // bitrate
-      '-y',                      // overwrite output
+      '-i',
+      inputFile.path,
+      '-af',
+      'bass=g=12', // +12dB bass boost (cinematic effect)
+      '-ar',
+      '44100', // sample rate
+      '-ac',
+      '2', // stereo
+      '-b:a',
+      '192k', // bitrate
+      '-y', // overwrite output
       outputFile.path,
     ];
 
@@ -174,7 +181,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Input File:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Input File:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     _selectedFile?.path.split('/').last ?? 'None',
@@ -194,7 +204,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _isProcessing ? null : _pickFile,
                 icon: const Icon(Icons.folder_open),
                 label: const Text('📂 Choose Audio File'),
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16)),
               ),
             ),
             const SizedBox(height: 16),
@@ -203,21 +214,33 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _processAudio,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isProcessing ? Colors.grey : Colors.deepPurple,
+                  backgroundColor:
+                      _isProcessing ? Colors.grey : Colors.deepPurple,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: _isProcessing
                     ? const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          ),
                           SizedBox(width: 8),
-                          Text('Processing...', style: TextStyle(fontSize: 16)),
+                          Text(
+                            'Processing...',
+                            style: TextStyle(fontSize: 16),
+                          ),
                         ],
                       )
                     : const Text(
                         '🎬 Apply Cinema DSP (Bass Boost → MP3)',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500),
                       ),
               ),
             ),
