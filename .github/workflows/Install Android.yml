@@ -1,0 +1,53 @@
+name: Init Flutter Project (Commit Android)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Create Flutter app structure
+        run: |
+          flutter create --platforms=android --project-name cinema_audio .
+          rm -f lib/main.dart
+
+      - name: Restore your main.dart
+        run: |
+          mkdir -p lib
+          cat << 'EOF' > lib/main.dart
+          import 'package:flutter/material.dart';
+          void main() {
+            runApp(const MyApp());
+          }
+          class MyApp extends StatelessWidget {
+            const MyApp({super.key});
+            @override
+            Widget build(BuildContext context) {
+              return const MaterialApp(
+                home: Scaffold(
+                  body: Center(child: Text('Cinema Audio Ready')),
+                ),
+              );
+            }
+          }
+          EOF
+
+      - name: Commit generated files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Initialize Flutter Android project"
+          git push
