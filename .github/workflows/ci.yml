@@ -11,31 +11,38 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Uses latest Ubuntu (2026: Flutter 3.24+ compatible)
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4  # Checkout code
+    - uses: actions/checkout@v4
 
-    - uses: subosito/flutter-action@v2.14.0  # Setup Flutter SDK (caches)
+    - uses: subosito/flutter-action@v2.14.0
       with:
-        flutter-version: '3.24.0'  # Pin to stable; auto-updates minor
-        channel: 'stable'
+        channel: 'stable'  # Always uses latest stable Flutter
 
     - name: Get dependencies
-      run: flutter pub get  # Installs packages (cached)
+      run: flutter pub get
 
     - name: Verify formatting
-      run: dart format --output=none --set-exit-if-changed .  # Lint check
+      run: dart format --output=none --set-exit-if-changed .
 
     - name: Run tests
-      run: flutter test  # Basic unit tests (expand as needed)
+      run: flutter test
 
     - name: Build APK
-      run: flutter build apk --release  # Builds app-release.apk
+      run: flutter build apk --release --verbose
 
     - name: Upload APK artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: app-release.apk
         path: build/app/outputs/flutter-apk/app-release.apk
-        retention-days: 30  # Keeps artifacts for 30 days
+        retention-days: 30
+
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-failure
+        path: '**/*.log'
